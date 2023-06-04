@@ -56,10 +56,10 @@ jobs:
       - name: Push docker containers to GitHub
         if: steps.download-docker-containers.outputs.found_artifact == 'true'
         run: |
-          find /tmp/docker_artifacts -name *_docker.tar -exec \
-            image_name=$(sed 's/_docker.tar//g' $(basename {})) && \
+          find /tmp/docker_artifacts -name *_docker.tar -exec bash -c \
+            "image_name=$(echo $(basename {} | sed 's/_docker.tar//g')) && \
             docker load --input {} && \
-            docker push ghcr.io/${{ github.repository_owner }}/${image_name}_docker:latest \;
+            docker push ghcr.io/${{ github.repository_owner }}/${image_name}_docker:latest" \;
 
       - name: Setup micromamba
         if: steps.download-apptainer-containers.outputs.found_artifact == 'true' || steps.download-charliecloud-containers.outputs.found_artifact == 'true'
@@ -81,9 +81,9 @@ jobs:
         if: steps.download-apptainer-containers.outputs.found_artifact == 'true'
         shell: micromamba-shell {0}
         run: |
-          find /tmp/apptainer_artifacts -name *_apptainer.sif -exec \
-            image_name=$(sed 's/_apptainer.sif//g' $(basename {})) && \
-            apptainer push {} oras://ghcr.io/${{ github.repository_owner }}/${image_name}_apptainer:latest \;
+          find /tmp/apptainer_artifacts -name *_apptainer.sif -exec bash -c \
+            "image_name=$(echo $(basename {}) | sed 's/_apptainer.sif//g') && \
+            apptainer push {} oras://ghcr.io/${{ github.repository_owner }}/${image_name}_apptainer:latest" \;
 
       - name: Push charliecloud containers to GitHub Packages
         if: steps.download-charliecloud-containers.outputs.found_artifact == 'true'
@@ -92,7 +92,7 @@ jobs:
           CH_IMAGE_USERNAME: ${{ github.repository_owner }}
           CH_IMAGE_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          find /tmp/charliecloud_artifacts -name *_charliecloud.tar -exec \
-            image_name=$(sed 's/_charliecloud.tar//g' $(basename {})) && \
+          find /tmp/charliecloud_artifacts -name *_charliecloud.tar -exec bash -c \
+            "image_name=$(echo $(basename {}) | sed 's/_charliecloud.tar//g') && \
             ch-image import {} ${image_name}_charliecloud:latest && \
-            ch-image push ${image_name}_charliecloud:latest ghcr.io/${{ github.repository_owner }}/${image_name}_charliecloud:latest \;
+            ch-image push ${image_name}_charliecloud:latest ghcr.io/${{ github.repository_owner }}/${image_name}_charliecloud:latest" \;
