@@ -64,7 +64,7 @@ jobs:
             docker push ghcr.io/${{ github.repository_owner }}/${image_name}_docker:latest \;
 
       - name: Setup micromamba
-        if: steps.download-apptainer-containers.outputs.found_artifact == 'true' | steps.download-charliecloud-containers.outputs.found_artifact == 'true'
+        if: steps.download-apptainer-containers.outputs.found_artifact == 'true' || steps.download-charliecloud-containers.outputs.found_artifact == 'true'
         uses: mamba-org/setup-micromamba@v1
         with:
           environment-name: containers
