@@ -1,4 +1,4 @@
-name: Push containers to GitHub Packages (test)
+name: Push containers to GitHub Packages
 
 on:
   pull_request:
