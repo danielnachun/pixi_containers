@@ -1,0 +1,103 @@
+name: Build containers from conda environments
+
+on:
+  pull_request:
+    paths:
+      - '*/*.yml'
+      - '*/*.yaml'
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+    outputs:
+      contexts: steps.changed-directories.outputs.all_changed_files
+      any_changed: steps.changed-directories.outputs.any_changed
+
+    steps:
+      - name: Checkout pull request branch
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Get branch name
+        id: branch-name
+        uses: tj-actions/branch-names@v7
+
+      - name: Get SHA of last commit to main branch
+        uses: nrwl/nx-set-shas@v3
+        id: last_successful_commit_pull_request
+        with:
+          main-branch-name: ${{ steps.branch-name.outputs.base_ref_branch }} 
+
+      - name: Get changed directories
+        id: changed-directories
+        uses: tj-actions/changed-files@v36
+        with: 
+          base_sha: ${{ steps.last_successful_commit_pull_request.outputs.base }}
+          dir_names: true
+          dir_names_exclude_root: true
+          files: |
+            */*.yml
+            */*.yaml
+
+  build_containers:
+    if: github.events.setup.outputs.any_changed == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix: 
+        context: github.events.setup.outputs.contexts
+
+    steps:
+      - name: Checkout pull request branch
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Setup up docker buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Setup micromamba
+        uses: mamba-org/setup-micromamba@v1
+        with:
+          environment-name: containers
+          create-args: apptainer charliecloud
+          generate-run-shell: true
+
+      - name: Build and export docker containers
+        uses: docker/build-push-action@v4
+        with:
+          context: matrix.context
+          file: .github/micromamba_docker.df
+          tags: ${{ matrix.context }}_docker:latest
+          outputs: type=oci,dest=/tmp/${{ matrix.context }}_docker.tar
+
+      - name: Upload docker containers to GitHub Actions
+        uses: actions/upload-artifact@v3
+        with:
+          name: docker_${{ github.event.pull_request.head.sha }}
+          path: /tmp/${{ matrix.context }}_docker.tar
+
+      - name: Build apptainer containers
+        shell: micromamba-shell {0}
+        run: apptainer build /tmp/${{matrix.context}}_apptainer.sif .github/micromamba.def
+
+      - name: Upload apptainer containers to GitHub Actions
+        uses: actions/upload-artifact@v3
+        with:
+          name: apptainer_${{ github.event.pull_request.head.sha }}
+          path: /tmp/${{ matrix.context }}_apptainer.sif
+
+      - name: Build charliecloud containers
+        shell: micromamba-shell {0}
+        run: |
+          ch-image build --tag ${{matrix.context}} --file .github/micromamba_charliecloud.df ${{matrix.context}} 
+          ch-convert --in-fmt ch-image --out-fmt tar ${{matrix.context}} ${{matrix.context}}_charliecloud.tar.gz
+
+      - name: Upload charlielcoud containers to GitHub Actions
+        uses: actions/upload-artifact@v3
+        with:
+          name: charliecloud_${{ github.event.pull_request.head.sha }}
+          path: /tmp/${{ matrix.context }}_charliecloud.tar.gz

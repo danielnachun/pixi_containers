@@ -1,0 +1,20 @@
+FROM mambaorg/micromamba
+COPY *.yml /environments/
+RUN for yml in $(ls /environments/*.yml); do \
+    env_name=$(grep "name: " < ${yml} | cut -d ' ' --fields 2); \
+        if [ $env_name = "base" ]; then \
+            micromamba install --quiet --yes --name base --file ${yml}; \
+        else \
+            micromamba env create --quiet --yes --file ${yml}; \
+        fi; \
+    done
+RUN micromamba clean --yes
+ENV MAMBA_ROOT_PREFIX=/opt/conda
+ENV CONDA_ROOT_PREFIX=/opt/conda
+
+RUN cp /bin/bash /bin/bash.orig
+RUN echo '#!/bin/bash.orig' >> /bin/bash.new
+RUN echo 'source /usr/local/bin/_activate_current_env.sh' >> /bin/bash.new
+RUN echo '/bin/bash.orig "$@"' >> /bin/bash.new
+RUN chmod +x /bin/bash.new
+RUN mv /bin/bash.new /bin/bash
