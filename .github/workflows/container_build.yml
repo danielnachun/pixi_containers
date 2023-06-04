@@ -12,8 +12,8 @@ jobs:
     strategy:
       fail-fast: false
     outputs:
-      contexts: steps.changed-directories.outputs.all_changed_files
-      any_changed: steps.changed-directories.outputs.any_changed
+      matrix: ${{ steps.export-directories.outputs.matrix }} 
+      any_changed: ${{ steps.changed-directories.outputs.any_changed }}
 
     steps:
       - name: Checkout pull request branch
@@ -38,17 +38,22 @@ jobs:
           base_sha: ${{ steps.last_successful_commit_pull_request.outputs.base }}
           dir_names: true
           dir_names_exclude_root: true
+          json: true
           files: |
             */*.yml
             */*.yaml
 
+      - name: Export changed directories
+        id: export-directories
+        run: echo "matrix={\"context\":${{ steps.changed-directories.outputs.all_changed_files }}}" >> "$GITHUB_OUTPUT"
+
   build_containers:
-    if: github.events.setup.outputs.any_changed == 'true'
+    needs: setup
+    if: needs.setup.outputs.any_changed == 'true'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      matrix: 
-        context: github.events.setup.outputs.contexts
+      matrix: ${{ fromJSON(needs.setup.outputs.matrix) }}
 
     steps:
       - name: Checkout pull request branch
@@ -69,35 +74,38 @@ jobs:
       - name: Build and export docker containers
         uses: docker/build-push-action@v4
         with:
-          context: matrix.context
-          file: .github/micromamba_docker.df
+          context: ${{ matrix.context }}
+          file: .github/docker.df
           tags: ${{ matrix.context }}_docker:latest
           outputs: type=oci,dest=/tmp/${{ matrix.context }}_docker.tar
 
       - name: Upload docker containers to GitHub Actions
         uses: actions/upload-artifact@v3
         with:
-          name: docker_${{ github.event.pull_request.head.sha }}
+          name: ${{ matrix.context }}_docker_${{ github.event.pull_request.head.sha }}
           path: /tmp/${{ matrix.context }}_docker.tar
 
       - name: Build apptainer containers
         shell: micromamba-shell {0}
-        run: apptainer build /tmp/${{matrix.context}}_apptainer.sif .github/micromamba.def
+        run: |
+          pushd ${{ matrix.context}}; \
+            apptainer build /tmp/${{ matrix.context }}_apptainer.sif ${{ github.workspace }}/.github/micromamba.def; \
+          popd
 
       - name: Upload apptainer containers to GitHub Actions
         uses: actions/upload-artifact@v3
         with:
-          name: apptainer_${{ github.event.pull_request.head.sha }}
+          name: ${{ matrix.context }}_apptainer_${{ github.event.pull_request.head.sha }}
           path: /tmp/${{ matrix.context }}_apptainer.sif
 
       - name: Build charliecloud containers
         shell: micromamba-shell {0}
         run: |
-          ch-image build --tag ${{matrix.context}} --file .github/micromamba_charliecloud.df ${{matrix.context}} 
-          ch-convert --in-fmt ch-image --out-fmt tar ${{matrix.context}} ${{matrix.context}}_charliecloud.tar.gz
+          ch-image build --tag ${{matrix.context}} --file .github/charliecloud.df ${{matrix.context}} 
+          ch-convert --in-fmt ch-image --out-fmt tar ${{matrix.context}} /tmp/${{matrix.context}}_charliecloud.tar.gz
 
-      - name: Upload charlielcoud containers to GitHub Actions
+      - name: Upload charliecloud containers to GitHub Actions
         uses: actions/upload-artifact@v3
         with:
-          name: charliecloud_${{ github.event.pull_request.head.sha }}
+          name: ${{ matrix.context }}_charliecloud_${{ github.event.pull_request.head.sha }}
           path: /tmp/${{ matrix.context }}_charliecloud.tar.gz
