@@ -18,7 +18,7 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           workflow: container_build.yml
-          name: '*_docker_${{ github.event.pull_request.head.sha }}'
+          name: '.*_docker_${{ github.event.pull_request.head.sha }}'
           name_is_regexp: true
           path: /tmp/docker_artifacts
           if_no_artifact_found: warn
@@ -29,7 +29,7 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           workflow: container_build.yml
-          name: '*_apptainer_${{ github.event.pull_request.head.sha }}'
+          name: '.*_apptainer_${{ github.event.pull_request.head.sha }}'
           name_is_regexp: true
           path: /tmp/apptainer_artifacts
           if_no_artifact_found: warn
@@ -40,7 +40,7 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           workflow: container_build.yml
-          name: '*_charliecloud_${{ github.event.pull_request.head.sha }}'
+          name: '.*_charliecloud_${{ github.event.pull_request.head.sha }}'
           name_is_regexp: true
           path: /tmp/charliecloud_artifacts
           if_no_artifact_found: warn
