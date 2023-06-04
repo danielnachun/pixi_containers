@@ -17,7 +17,7 @@ jobs:
         uses: dawidd6/action-download-artifact@v2
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          workflow: container_build.yaml
+          workflow: container_build.yml
           name: '*_docker_${{ github.event.pull_request.head.sha }}'
           name_is_regexp: true
           path: /tmp/docker_artifacts
