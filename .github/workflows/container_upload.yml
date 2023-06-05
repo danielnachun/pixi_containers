@@ -59,7 +59,7 @@ jobs:
           find /tmp/docker_artifacts -name *_docker.tar -exec bash -c \
             'image_name=$(echo $(basename {}) | sed "s/_docker.tar//g") && \
             docker load --input {} && \
-            docker tag ${image_name}:latest ghcr.io/${{ github.repository_owner }}/${image_name}_docker:latest && \
+            docker tag ${image_name}_docker:latest ghcr.io/${{ github.repository_owner }}/${image_name}_docker:latest && \
             docker push ghcr.io/${{ github.repository_owner }}/${image_name}_docker:latest' \;
 
       - name: Setup micromamba
