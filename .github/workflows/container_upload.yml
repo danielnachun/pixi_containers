@@ -57,11 +57,10 @@ jobs:
         if: steps.download-docker-containers.outputs.found_artifact == 'true'
         run: |
           find /tmp/docker_artifacts -name *_docker.tar -exec bash -c \
-            "image_name=$(echo $(basename {}) | sed 's/_docker.tar//g') && \
-            echo ${image_name} && \
+            'image_name=$(echo $(basename {}) | sed "s/_docker.tar//g") && \
             docker load --input {} && \
             docker tag ${image_name}:latest ghcr.io/${{ github.repository_owner }}/${image_name}_docker:latest && \
-            docker push ghcr.io/${{ github.repository_owner }}/${image_name}_docker:latest" \;
+            docker push ghcr.io/${{ github.repository_owner }}/${image_name}_docker:latest' \;
 
       - name: Setup micromamba
         if: steps.download-apptainer-containers.outputs.found_artifact == 'true'
@@ -84,9 +83,8 @@ jobs:
         shell: micromamba-shell {0}
         run: |
           find /tmp/apptainer_artifacts -name *_apptainer.sif -exec bash -c \
-            "image_name=$(echo $(basename {}) | sed 's/_apptainer.sif//g') && \
-            echo ${image_name} && \
-            apptainer push {} oras://ghcr.io/${{ github.repository_owner }}/${image_name}_apptainer:latest" \;
+            'image_name=$(echo $(basename {}) | sed "s/_apptainer.sif//g") && \
+            apptainer push {} oras://ghcr.io/${{ github.repository_owner }}/${image_name}_apptainer:latest' \;
 
       #- name: Push charliecloud containers to GitHub Packages
         #if: steps.download-charliecloud-containers.outputs.found_artifact == 'true'
@@ -112,10 +110,10 @@ jobs:
         if: steps.download-docker-containers.outputs.found_artifact == 'true'
         run: |
           find /tmp/docker_artifacts -name *_docker.tar -exec bash -c \
-            "image_name=$(echo $(basename {}) | sed 's/_docker.tar//g') && \
+            'image_name=$(echo $(basename {}) | sed "s/_docker.tar//g") && \
             docker load --input {} && \
             docker tag ${image_name}_docker:latest quay.io/${{ vars.QUAYIO_USERNAME }}/${image_name}_docker:latest && \
-            docker push quay.io/${{ vars.QUAYIO_USERNAME }}/${image_name}_docker:latest" \;
+            docker push quay.io/${{ vars.QUAYIO_USERNAME }}/${image_name}_docker:latest' \;
 
       - name: Log in to quay.io with apptainer
         if: steps.download-apptainer-containers.outputs.found_artifact == 'true'
@@ -130,8 +128,8 @@ jobs:
         shell: micromamba-shell {0}
         run: |
           find /tmp/apptainer_artifacts -name *_apptainer.sif -exec bash -c \
-            "image_name=$(echo $(basename {}) | sed 's/_apptainer.sif//g') && \
-            apptainer push {} oras://quay.io/${{ vars.QUAYIO_USERNAME }}/${image_name}_apptainer:latest" \;
+            'image_name=$(echo $(basename {}) | sed "s/_apptainer.sif//g") && \
+            apptainer push {} oras://quay.io/${{ vars.QUAYIO_USERNAME }}/${image_name}_apptainer:latest' \;
 
       - name: Log in to docker.io with docker
         if: steps.download-docker-containers.outputs.found_artifact == 'true' 
@@ -145,10 +143,10 @@ jobs:
         if: steps.download-docker-containers.outputs.found_artifact == 'true'
         run: |
           find /tmp/docker_artifacts -name *_docker.tar -exec bash -c \
-            "image_name=$(echo $(basename {}) | sed 's/_docker.tar//g') && \
+            'image_name=$(echo $(basename {}) | sed "s/_docker.tar//g") && \
             docker load --input {} && \
             docker tag ${image_name}_docker:latest docker.io/${{ vars.DOCKERIO_USERNAME }}/${image_name}_docker:latest && \
-            docker push docker.io/${{ vars.DOCKERIO_USERNAME }}/${image_name}_docker:latest" \;
+            docker push docker.io/${{ vars.DOCKERIO_USERNAME }}/${image_name}_docker:latest' \;
 
       - name: Log in to docker.io with apptainer
         if: steps.download-apptainer-containers.outputs.found_artifact == 'true'
@@ -163,5 +161,5 @@ jobs:
         shell: micromamba-shell {0}
         run: |
           find /tmp/apptainer_artifacts -name *_apptainer.sif -exec bash -c \
-            "image_name=$(echo $(basename {}) | sed 's/_apptainer.sif//g') && \
-            apptainer push {} oras://docker.io/${{ vars.DOCKERIO_USERNAME }}/${image_name}_apptainer:latest" \;
+            'image_name=$(echo $(basename {}) | sed "s/_apptainer.sif//g") && \
+            apptainer push {} oras://docker.io/${{ vars.DOCKERIO_USERNAME }}/${image_name}_apptainer:latest' \;
