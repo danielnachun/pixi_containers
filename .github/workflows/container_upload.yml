@@ -34,18 +34,18 @@ jobs:
           path: /tmp/apptainer_artifacts
           if_no_artifact_found: warn
 
-      - name: Download charliecloud containers
-        id: download-charliecloud-containers
-        uses: dawidd6/action-download-artifact@v2
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          workflow: container_build.yml
-          name: '.*_charliecloud_${{ github.event.pull_request.head.sha }}'
-          name_is_regexp: true
-          path: /tmp/charliecloud_artifacts
-          if_no_artifact_found: warn
+      #- name: Download charliecloud containers
+        #id: download-charliecloud-containers
+        #uses: dawidd6/action-download-artifact@v2
+        #with:
+          #github_token: ${{ secrets.GITHUB_TOKEN }}
+          #workflow: container_build.yml
+          #name: '.*_charliecloud_${{ github.event.pull_request.head.sha }}'
+          #name_is_regexp: true
+          #path: /tmp/charliecloud_artifacts
+          #if_no_artifact_found: warn
 
-      - name: Log in to GitHub Packages with docker
+      - name: Log in to ghcr.io with docker
         if: steps.download-docker-containers.outputs.found_artifact == 'true'
         uses: docker/login-action@v2
         with:
@@ -53,31 +53,32 @@ jobs:
           username: ${{github.repository_owner}}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Push docker containers to GitHub
+      - name: Push docker containers to ghcr.io
         if: steps.download-docker-containers.outputs.found_artifact == 'true'
         run: |
           find /tmp/docker_artifacts -name *_docker.tar -exec bash -c \
             "image_name=$(echo $(basename {} | sed 's/_docker.tar//g')) && \
             docker load --input {} && \
+            docker tag ${image_name}:latest ghcr.io/${{ github.repository_owner }}/${image_name}_docker:latest && \
             docker push ghcr.io/${{ github.repository_owner }}/${image_name}_docker:latest" \;
 
       - name: Setup micromamba
-        if: steps.download-apptainer-containers.outputs.found_artifact == 'true' || steps.download-charliecloud-containers.outputs.found_artifact == 'true'
+        if: steps.download-apptainer-containers.outputs.found_artifact == 'true'
         uses: mamba-org/setup-micromamba@v1
         with:
           environment-name: containers
-          create-args: apptainer charliecloud
+          create-args: apptainer
           generate-run-shell: true
       
-      - name: Log in to GitHub Packages with apptainer
+      - name: Log in to ghcr.io with apptainer
         if: steps.download-apptainer-containers.outputs.found_artifact == 'true'
         shell: micromamba-shell {0}
         run: |
           apptainer remote login --username ${{ github.repository_owner }} \
             --password ${{ secrets.GITHUB_TOKEN }} \
-            oras://ghcr.io/${{ github.repository_owner }}
+            docker://ghcr.io/${{ github.repository_owner }}
 
-      - name: Push apptainer containers to GitHub Packages
+      - name: Push apptainer containers to ghcr.io
         if: steps.download-apptainer-containers.outputs.found_artifact == 'true'
         shell: micromamba-shell {0}
         run: |
@@ -85,14 +86,80 @@ jobs:
             "image_name=$(echo $(basename {}) | sed 's/_apptainer.sif//g') && \
             apptainer push {} oras://ghcr.io/${{ github.repository_owner }}/${image_name}_apptainer:latest" \;
 
-      - name: Push charliecloud containers to GitHub Packages
-        if: steps.download-charliecloud-containers.outputs.found_artifact == 'true'
-        shell: micromamba-shell {0}
-        env:
-          CH_IMAGE_USERNAME: ${{ github.repository_owner }}
-          CH_IMAGE_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+      #- name: Push charliecloud containers to GitHub Packages
+        #if: steps.download-charliecloud-containers.outputs.found_artifact == 'true'
+        #shell: micromamba-shell {0}
+        #env:
+          #CH_IMAGE_USERNAME: ${{ github.repository_owner }}
+          #CH_IMAGE_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+        #run: |
+          #find /tmp/charliecloud_artifacts -name *_charliecloud.tar -exec bash -c \
+            #"image_name=$(echo $(basename {}) | sed 's/_charliecloud.tar//g') && \
+            #ch-image import {} ghcr.io/${{ github.repository_owner }}/${image_name}_charliecloud:latest && \
+            #ch-image push ghcr.io/${{ github.repository_owner }}/${image_name}_charliecloud:latest" \;
+
+      - name: Log in to quay.io with docker
+        if: steps.download-docker-containers.outputs.found_artifact == 'true' 
+        uses: docker/login-action@v2
+        with:
+          registry: quay.io
+          username: ${{ vars.QUAYIO_USERNAME }}
+          password: ${{ secrets.QUAYIO_TOKEN }}
+
+      - name: Push docker containers to quay.io
+        if: steps.download-docker-containers.outputs.found_artifact == 'true'
         run: |
-          find /tmp/charliecloud_artifacts -name *_charliecloud.tar -exec bash -c \
-            "image_name=$(echo $(basename {}) | sed 's/_charliecloud.tar//g') && \
-            ch-image import {} ${image_name}_charliecloud:latest && \
-            ch-image push ${image_name}_charliecloud:latest ghcr.io/${{ github.repository_owner }}/${image_name}_charliecloud:latest" \;
+          find /tmp/docker_artifacts -name *_docker.tar -exec bash -c \
+            "image_name=$(echo $(basename {} | sed 's/_docker.tar//g')) && \
+            docker load --input {} && \
+            docker tag ${image_name}_docker:latest quay.io/${{ vars.QUAYIO_USERNAME }}/${image_name}_docker:latest" && \
+            docker push quay.io/${{ vars.QUAYIO_USERNAME }}/${image_name}_docker:latest" \;
+
+      - name: Log in to quay.io with apptainer
+        if: steps.download-apptainer-containers.outputs.found_artifact == 'true'
+        shell: micromamba-shell {0}
+        run: |
+          apptainer remote login --username ${{ vars.QUAYIO_USERNAME }} \
+            --password ${{ secrets.QUAYIO_TOKEN }} \
+            docker://quay.io/${{ vars.QUAYIO_USERNAME }}
+
+      - name: Push apptainer containers to quay.io
+        if: steps.download-apptainer-containers.outputs.found_artifact == 'true'
+        shell: micromamba-shell {0}
+        run: |
+          find /tmp/apptainer_artifacts -name *_apptainer.sif -exec bash -c \
+            "image_name=$(echo $(basename {}) | sed 's/_apptainer.sif//g') && \
+            apptainer push {} oras://quay.io/${{ vars.QUAYIO_USERNAME }}/${image_name}_apptainer:latest" \;
+
+      - name: Log in to docker.io with docker
+        if: steps.download-docker-containers.outputs.found_artifact == 'true' 
+        uses: docker/login-action@v2
+        with:
+          registry: docker.io
+          username: ${{ vars.DOCKERIO_USERNAME }}
+          password: ${{ secrets.DOCKERIO_TOKEN }}
+
+      - name: Push docker containers to docker.io
+        if: steps.download-docker-containers.outputs.found_artifact == 'true'
+        run: |
+          find /tmp/docker_artifacts -name *_docker.tar -exec bash -c \
+            "image_name=$(echo $(basename {} | sed 's/_docker.tar//g')) && \
+            docker load --input {} && \
+            docker tag ${image_name}_docker:latest docker.io/${{ vars.DOCKERIO_USERNAME }}/${image_name}_docker:latest" && \
+            docker push docker.io/${{ vars.DOCKERIO_USERNAME }}/${image_name}_docker:latest" \;
+
+      - name: Log in to docker.io with apptainer
+        if: steps.download-apptainer-containers.outputs.found_artifact == 'true'
+        shell: micromamba-shell {0}
+        run: |
+          apptainer remote login --username ${{ vars.DOCKERIO_USERNAME }} \
+            --password ${{ secrets.DOCKERIO_TOKEN }} \
+            docker://docker.io
+
+      - name: Push apptainer containers to docker.io
+        if: steps.download-apptainer-containers.outputs.found_artifact == 'true'
+        shell: micromamba-shell {0}
+        run: |
+          find /tmp/apptainer_artifacts -name *_apptainer.sif -exec bash -c \
+            "image_name=$(echo $(basename {}) | sed 's/_apptainer.sif//g') && \
+            apptainer push {} oras://docker.io/${{ vars.DOCKERIO_USERNAME }}/${image_name}_apptainer:latest" \;
