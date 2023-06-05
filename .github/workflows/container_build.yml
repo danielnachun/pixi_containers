@@ -68,7 +68,7 @@ jobs:
         uses: mamba-org/setup-micromamba@v1
         with:
           environment-name: containers
-          create-args: apptainer charliecloud
+          create-args: apptainer
           generate-run-shell: true
 
       - name: Build and export docker containers
@@ -77,7 +77,7 @@ jobs:
           context: ${{ matrix.context }}
           file: .github/docker.df
           tags: ${{ matrix.context }}_docker:latest
-          outputs: type=oci,dest=/tmp/${{ matrix.context }}_docker.tar
+          outputs: type=docker,dest=/tmp/${{ matrix.context }}_docker.tar
 
       - name: Upload docker containers to GitHub Actions
         uses: actions/upload-artifact@v3
@@ -98,14 +98,14 @@ jobs:
           name: ${{ matrix.context }}_apptainer_${{ github.event.pull_request.head.sha }}
           path: /tmp/${{ matrix.context }}_apptainer.sif
 
-      - name: Build charliecloud containers
-        shell: micromamba-shell {0}
-        run: |
-          ch-image build --tag ${{matrix.context}} --file .github/charliecloud.df ${{matrix.context}} 
-          ch-convert --in-fmt ch-image --out-fmt tar ${{matrix.context}} /tmp/${{matrix.context}}_charliecloud.tar.gz
+      #- name: Build charliecloud containers
+        #shell: micromamba-shell {0}
+        #run: |
+          #ch-image build --tag ${{matrix.context}} --file .github/charliecloud.df ${{matrix.context}} 
+          #ch-convert --in-fmt ch-image --out-fmt tar ${{matrix.context}} /tmp/${{matrix.context}}_charliecloud.tar.gz
 
-      - name: Upload charliecloud containers to GitHub Actions
-        uses: actions/upload-artifact@v3
-        with:
-          name: ${{ matrix.context }}_charliecloud_${{ github.event.pull_request.head.sha }}
-          path: /tmp/${{ matrix.context }}_charliecloud.tar.gz
+      #- name: Upload charliecloud containers to GitHub Actions
+        #uses: actions/upload-artifact@v3
+        #with:
+          #name: ${{ matrix.context }}_charliecloud_${{ github.event.pull_request.head.sha }}
+          #path: /tmp/${{ matrix.context }}_charliecloud.tar.gz
