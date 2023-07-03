@@ -73,7 +73,7 @@ jobs:
 
       - name: Build and export docker containers
         uses: docker/build-push-action@v4
-        if: !contains(github.event.pull_request.labels.*.name, 'cuda')
+        if: ${{ !contains(github.event.pull_request.labels.*.name, 'cuda') }}
         with:
           context: ${{ matrix.context }}
           file: .github/docker.df
@@ -97,7 +97,7 @@ jobs:
           path: /tmp/${{ matrix.context }}.tar
 
       - name: Build apptainer containers
-        if: !contains(github.event.pull_request.labels.*.name, 'cuda')
+        if: ${{ !contains(github.event.pull_request.labels.*.name, 'cuda') }}
         shell: micromamba-shell {0}
         run: |
           pushd ${{ matrix.context}}; \
