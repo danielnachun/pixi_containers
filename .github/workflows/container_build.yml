@@ -73,23 +73,43 @@ jobs:
 
       - name: Build and export docker containers
         uses: docker/build-push-action@v4
+        if: ${{ !contains(github.event.pull_request.labels.*.name, 'cuda') }}
         with:
           context: ${{ matrix.context }}
           file: .github/docker.df
-          tags: ${{ matrix.context }}_docker:latest
-          outputs: type=docker,dest=/tmp/${{ matrix.context }}_docker.tar
+          tags: ${{ matrix.context }}:latest
+          outputs: type=docker,dest=/tmp/${{ matrix.context }}.tar
+
+      - name: Build and export docker containers with CUDA
+        uses: docker/build-push-action@v4
+        if: contains(github.event.pull_request.labels.*.name, 'cuda')
+        with:
+          build-args: CUDA_VERSION=11.2
+          context: ${{ matrix.context }}
+          file: .github/docker.df
+          tags: ${{ matrix.context }}:latest
+          outputs: type=docker,dest=/tmp/${{ matrix.context }}.tar
 
       - name: Upload docker containers to GitHub Actions
         uses: actions/upload-artifact@v3
         with:
           name: ${{ matrix.context }}_docker_${{ github.event.pull_request.head.sha }}
-          path: /tmp/${{ matrix.context }}_docker.tar
+          path: /tmp/${{ matrix.context }}.tar
 
       - name: Build apptainer containers
+        if: ${{ !contains(github.event.pull_request.labels.*.name, 'cuda') }}
         shell: micromamba-shell {0}
         run: |
           pushd ${{ matrix.context}}; \
             apptainer build /tmp/${{ matrix.context }}_apptainer.sif ${{ github.workspace }}/.github/micromamba.def; \
+          popd
+
+      - name: Build apptainer containers with CUDA
+        if: contains(github.event.pull_request.labels.*.name, 'cuda')
+        shell: micromamba-shell {0}
+        run: |
+          pushd ${{ matrix.context}}; \
+            apptainer build /tmp/${{ matrix.context }}_apptainer.sif ${{ github.workspace }}/.github/micromamba_cuda.def; \
           popd
 
       - name: Upload apptainer containers to GitHub Actions
