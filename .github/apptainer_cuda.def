@@ -17,6 +17,8 @@ From: mambaorg/micromamba
     echo 'export MAMBA_DOCKERFILE_ACTIVATE=1' >> ${SINGULARITY_ENVIRONMENT}
     echo 'export MAMBA_ROOT_PREFIX=/opt/conda' >> ${SINGULARITY_ENVIRONMENT}
     echo 'export CONDA_ROOT_PREFIX=/opt/conda' >> ${SINGULARITY_ENVIRONMENT}
+    ecoh 'export CUDA_DIR=/opt/conda' >> ${SINGULARITY_ENVIRONMENT}
+    ecoh 'export XLA_FLAGS=--xla_gpu_cuda_data_dir=/opt/conda' >> ${SINGULARITY_ENVIRONMENT}
 
     cp /bin/bash /bin/bash.orig
     echo '#!/bin/bash.orig' >> /bin/bash.new

@@ -11,3 +11,5 @@ RUN for yml in $(ls /environments/*.yml); do \
     done
 RUN micromamba clean --all --yes
 ENV MAMBA_ACTIVATE_DOCKERFILE=1
+ENV CUDA_DIR=/opt/conda
+ENV XLA_FLAGS=--xla_gpu_cuda_data_dir=/opt/conda
