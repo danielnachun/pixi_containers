@@ -13,7 +13,7 @@ From: mambaorg/micromamba
             micromamba env create --quiet --yes --file ${yml};
         fi
     done
-    micromamba clean --yes
+    micromamba clean --all --yes
     echo 'export MAMBA_DOCKERFILE_ACTIVATE=1' >> ${SINGULARITY_ENVIRONMENT}
     echo 'export MAMBA_ROOT_PREFIX=/opt/conda' >> ${SINGULARITY_ENVIRONMENT}
     echo 'export CONDA_ROOT_PREFIX=/opt/conda' >> ${SINGULARITY_ENVIRONMENT}

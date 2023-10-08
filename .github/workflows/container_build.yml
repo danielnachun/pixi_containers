@@ -3,8 +3,7 @@ name: Build containers from conda environments
 on:
   pull_request:
     paths:
-      - '*/*.yml'
-      - '*/*.yaml'
+      - 'container/*/*.yml'
 
 jobs:
   setup:
@@ -13,7 +12,7 @@ jobs:
       fail-fast: false
     outputs:
       matrix: ${{ steps.export-directories.outputs.matrix }} 
-      any_changed: ${{ steps.changed-directories.outputs.any_changed }}
+      all_changed_files_count: ${{ steps.changed-directories.outputs.all_changed_files_count }}
 
     steps:
       - name: Checkout pull request branch
@@ -37,19 +36,27 @@ jobs:
         with: 
           base_sha: ${{ steps.last_successful_commit_pull_request.outputs.base }}
           dir_names: true
-          dir_names_exclude_root: true
+          dir_names_exclude_current_dir: true
           json: true
-          files: |
-            */*.yml
-            */*.yaml
+          files: container/*/*.yml
 
       - name: Export changed directories
+        if: steps.changed-directories.outputs.all_changed_files_count > 0
         id: export-directories
-        run: echo "matrix={\"context\":${{ steps.changed-directories.outputs.all_changed_files }}}" >> "$GITHUB_OUTPUT"
+        run: |
+          echo "matrix={\"context\":${{ steps.changed-directories.outputs.all_changed_files }}}" > /tmp/changed_directories.json
+          echo "matrix={\"context\":${{ steps.changed-directories.outputs.all_changed_files }}}" >> "$GITHUB_OUTPUT"
 
-  build_containers:
+      - name: Upload changed directories
+        if: steps.changed-directories.outputs.all_changed_files_count > 0
+        uses: actions/upload-artifact@v3
+        with:
+          name: changed_directories_${{ github.event.pull_request.head.sha }}
+          path: /tmp/changed_directories.json
+
+  docker_container:
     needs: setup
-    if: needs.setup.outputs.any_changed == 'true'
+    if: needs.setup.outputs.all_changed_files_count > 0
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -64,6 +71,39 @@ jobs:
       - name: Setup up docker buildx
         uses: docker/setup-buildx-action@v2
 
+      - name: Build docker containers
+        uses: docker/build-push-action@v4
+        if: ${{ !contains(github.event.pull_request.labels.*.name, 'cuda') }}
+        with:
+          context: ${{ matrix.context }}
+          file: .github/docker.df
+          tags: ${{ matrix.context }}_docker:latest
+          outputs: type=docker,dest=/tmp/${{ matrix.context }}_docker.tar
+
+      - name: Build docker containers with CUDA
+        uses: docker/build-push-action@v4
+        if: contains(github.event.pull_request.labels.*.name, 'cuda')
+        with:
+          build-args: CUDA_VERSION=11.2
+          context: ${{ matrix.context }}
+          file: .github/docker.df
+          tags: ${{ matrix.context }}_docker:latest
+          outputs: type=docker,dest=/tmp/${{ matrix.context }}_docker.tar
+
+  apptainer_container:
+    needs: setup
+    if: needs.setup.outputs.all_changed_files_count > 0
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.setup.outputs.matrix) }}
+
+    steps:
+      - name: Checkout pull request branch
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
       - name: Setup micromamba
         uses: mamba-org/setup-micromamba@v1
         with:
@@ -71,37 +111,12 @@ jobs:
           create-args: apptainer
           generate-run-shell: true
 
-      - name: Build and export docker containers
-        uses: docker/build-push-action@v4
-        if: ${{ !contains(github.event.pull_request.labels.*.name, 'cuda') }}
-        with:
-          context: ${{ matrix.context }}
-          file: .github/docker.df
-          tags: ${{ matrix.context }}:latest
-          outputs: type=docker,dest=/tmp/${{ matrix.context }}.tar
-
-      - name: Build and export docker containers with CUDA
-        uses: docker/build-push-action@v4
-        if: contains(github.event.pull_request.labels.*.name, 'cuda')
-        with:
-          build-args: CUDA_VERSION=11.2
-          context: ${{ matrix.context }}
-          file: .github/docker.df
-          tags: ${{ matrix.context }}:latest
-          outputs: type=docker,dest=/tmp/${{ matrix.context }}.tar
-
-      - name: Upload docker containers to GitHub Actions
-        uses: actions/upload-artifact@v3
-        with:
-          name: ${{ matrix.context }}_docker_${{ github.event.pull_request.head.sha }}
-          path: /tmp/${{ matrix.context }}.tar
-
       - name: Build apptainer containers
         if: ${{ !contains(github.event.pull_request.labels.*.name, 'cuda') }}
         shell: micromamba-shell {0}
         run: |
           pushd ${{ matrix.context}}; \
-            apptainer build /tmp/${{ matrix.context }}_apptainer.sif ${{ github.workspace }}/.github/micromamba.def; \
+            apptainer build /tmp/${{ matrix.context }}_apptainer.sif ${{ github.workspace }}/.github/apptainer.def; \
           popd
 
       - name: Build apptainer containers with CUDA
@@ -109,23 +124,5 @@ jobs:
         shell: micromamba-shell {0}
         run: |
           pushd ${{ matrix.context}}; \
-            apptainer build /tmp/${{ matrix.context }}_apptainer.sif ${{ github.workspace }}/.github/micromamba_cuda.def; \
+            apptainer build /tmp/${{ matrix.context }}_apptainer.sif ${{ github.workspace }}/.github/apptainer_cuda.def; \
           popd
-
-      - name: Upload apptainer containers to GitHub Actions
-        uses: actions/upload-artifact@v3
-        with:
-          name: ${{ matrix.context }}_apptainer_${{ github.event.pull_request.head.sha }}
-          path: /tmp/${{ matrix.context }}_apptainer.sif
-
-      #- name: Build charliecloud containers
-        #shell: micromamba-shell {0}
-        #run: |
-          #ch-image build --tag ${{matrix.context}} --file .github/charliecloud.df ${{matrix.context}} 
-          #ch-convert --in-fmt ch-image --out-fmt tar ${{matrix.context}} /tmp/${{matrix.context}}_charliecloud.tar.gz
-
-      #- name: Upload charliecloud containers to GitHub Actions
-        #uses: actions/upload-artifact@v3
-        #with:
-          #name: ${{ matrix.context }}_charliecloud_${{ github.event.pull_request.head.sha }}
-          #path: /tmp/${{ matrix.context }}_charliecloud.tar.gz
