@@ -1,0 +1,9 @@
+name: base
+channels:
+  - dnachun
+  - conda-forge
+  - bioconda
+  - nodefaults
+dependencies:
+  - tensorqtl
+  - nvidia::cuda-nvcc
