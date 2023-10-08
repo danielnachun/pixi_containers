@@ -3,7 +3,7 @@ name: Build containers from conda environments
 on:
   pull_request:
     paths:
-      - 'container/*/*.yml'
+      - '*/*.yml'
 
 jobs:
   setup:
