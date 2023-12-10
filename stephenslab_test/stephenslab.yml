@@ -1,4 +1,4 @@
-name: stephenslab_test
+name: stephenslab
 channels:
   - dnachun
   - conda-forge
