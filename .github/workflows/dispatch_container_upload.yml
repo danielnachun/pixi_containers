@@ -54,7 +54,7 @@ jobs:
         with:
           build-contexts: |
             github=${{ github.workspace }}/.github
-          context: container/${{ github.event.inputs.container_name }}
+          context: ${{ github.event.inputs.container_name }}
           file: .github/docker.df
           push: true
           tags: |
