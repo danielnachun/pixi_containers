@@ -41,7 +41,7 @@ jobs:
           dir_names_exclude_current_dir: true
           json: true
           files: 
-            - "*/global_packages"
+            - '*/global_packages'
             - '*/r_libs.yml'
             - '*/python_libs.yml'
 
