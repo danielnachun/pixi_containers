@@ -40,10 +40,10 @@ jobs:
           dir_names: true
           dir_names_exclude_current_dir: true
           json: true
-          files: 
-            - "*/global_packages"
-            - '*/r_libs.yml'
-            - '*/python_libs.yml'
+          files: |
+            */global_packages
+            */r_libs.yml
+            */python_libs.yml
 
       - name: Export changed directories
         if: steps.changed-directories.outputs.all_changed_files_count > 0
@@ -82,8 +82,8 @@ jobs:
       - name: Build docker containers
         uses: docker/build-push-action@v4
         with:
-          build-contexts:
-            - github=${{ github.workspace }}/.github
+          build-contexts: |
+            github=${{ github.workspace }}/.github
           context: ${{ matrix.context }}
           file: .github/docker.df
           tags: ${{ matrix.context }}_docker:latest
