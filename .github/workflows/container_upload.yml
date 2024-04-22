@@ -82,7 +82,7 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           build-contexts: |
-            - github=${{ github.workspace }}/.github
+            github=${{ github.workspace }}/.github
           context: ${{ matrix.context }}
           file: .github/docker.df
           push: true
