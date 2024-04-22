@@ -110,7 +110,7 @@ jobs:
         uses: mamba-org/setup-micromamba@v1
         with:
           environment-name: containers
-          create-args: apptainer
+          create-args: apptainer=1.2
           generate-run-shell: true
 
       - name: Build apptainer containers
