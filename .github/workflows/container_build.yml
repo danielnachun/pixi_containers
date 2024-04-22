@@ -41,9 +41,9 @@ jobs:
           dir_names_exclude_current_dir: true
           json: true
           files: |
-            - '*/global_packages'
-            - '*/r_libs.yml'
-            - '*/python_libs.yml'
+            */global_packages
+            */r_libs.yml
+            */python_libs.yml
 
       - name: Export changed directories
         if: steps.changed-directories.outputs.all_changed_files_count > 0
