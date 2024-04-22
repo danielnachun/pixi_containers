@@ -1,26 +1,58 @@
 Bootstrap: docker
-From: mambaorg/micromamba
+From: ghcr.io/prefix-dev/pixi
+Stage: build
 
-%setup
-    cp *.yml ${SINGULARITY_ROOTFS}
+%setup 
+    cp global_packages ${APPTAINER_ROOTFS}
+    cp r_libs.yml ${APPTAINER_ROOTFS}
+    cp python_libs.yml ${APPTAINER_ROOTFS}
+    cp ../.github/config.toml ${APPTAINER_ROOTFS}
+    cp ../.github/jupyter_lab_config.py ${APPTAINER_ROOTFS}
+    cp ../.github/jupyter_server_config.py ${APPTAINER_ROOTFS}
+    cp ../.github/setup.sh ${APPTAINER_ROOTFS}
+
+%environment
+    export PIXI_HOME=/opt/pixi
+    export PATH=${PIXI_HOME}/bin:${PATH}
+    export RATTLER_CACHE_DIR=/opt/rattler
+    export JUPYTER_CONFIG_PATH=/opt/jupyter
+    export MAMBA_ROOT_PREFIX=/opt/micromamba
+    export MAMBA_EXE=${PIXI_HOME}/envs/micromamba/bin/micromamba
+    export PYDEVD_DISABLE_FILE_VALIDATION=1
 
 %post
-    for yml in $(ls *.yml); do 
-        env_name=$(grep "name: " < ${yml} | cut -d ' ' --fields 2)
-        if [ $env_name = "base" ]; then
-            micromamba install --quiet --yes --name base --file ${yml}
-        else
-            micromamba env create --quiet --yes --file ${yml};
-        fi
-    done
-    micromamba clean --all --yes
-    echo 'export MAMBA_DOCKERFILE_ACTIVATE=1' >> ${SINGULARITY_ENVIRONMENT}
-    echo 'export MAMBA_ROOT_PREFIX=/opt/conda' >> ${SINGULARITY_ENVIRONMENT}
-    echo 'export CONDA_ROOT_PREFIX=/opt/conda' >> ${SINGULARITY_ENVIRONMENT}
+    apt-get update
+    apt-get -y install ca-certificates tzdata libgl1 libgomp1
+    ln -sf /bin/bash /bin/sh
 
-    cp /bin/bash /bin/bash.orig
-    echo '#!/bin/bash.orig' >> /bin/bash.new
-    echo 'source /usr/local/bin/_activate_current_env.sh' >> /bin/bash.new
-    echo '/bin/bash.orig "$@"' >> /bin/bash.new
-    chmod +x /bin/bash.new
-    mv /bin/bash.new /bin/bash
+    export PIXI_HOME=/opt/pixi
+    export PATH=${PIXI_HOME}/bin:${PATH}
+    export RATTLER_CACHE_DIR=/opt/rattler
+    export JUPYTER_CONFIG_PATH=/opt/jupyter
+    export MAMBA_ROOT_PREFIX=/opt/micromamba
+    export MAMBA_EXE=${PIXI_HOME}/envs/micromamba/bin/micromamba
+
+    mkdir -p ${PIXI_HOME}
+    mkdir -p ${RATTLER_CACHE_DIR}
+    mkdir -p ${JUPYTER_CONFIG_PATH}
+    mkdir -p ${MAMBA_ROOT_PREFIX}
+
+    cp config.toml ${PIXI_HOME}
+    pixi global install $(tr '\n' ' ' < global_packages)
+    cp jupyter_lab_config.py ${JUPYTER_CONFIG_PATH}
+    cp jupyter_server_config.py ${JUPYTER_CONFIG_PATH}
+
+    micromamba env create --yes --quiet --file r_libs.yml;
+    micromamba env create --yes --quiet --file python_libs.yml;
+    micromamba clean --all --yes
+
+    find ${MAMBA_ROOT_PREFIX}/envs/python_libs/share/jupyter/kernels/ -maxdepth 1 -mindepth 1 -type d | \
+        xargs -I % jupyter-kernelspec install %
+    find ${MAMBA_ROOT_PREFIX}/envs/r_libs/share/jupyter/kernels/ -maxdepth 1 -mindepth 1 -type d | \
+        xargs -I % jupyter-kernelspec install %
+
+    bash setup.sh
+
+%runscript
+    cd ${HOME}
+    exec jupyter-lab

@@ -4,7 +4,9 @@ on:
   pull_request_target:
     types: [closed]
     paths:
-      - '*/*.yml'
+      - '*/global_packages'
+      - '*/r_libs.yml'
+      - '*/python_libs.yml'
 
 jobs:
   setup:
@@ -78,21 +80,9 @@ jobs:
 
       - name: Build and push docker containers
         uses: docker/build-push-action@v4
-        if: ${{ !contains(github.event.pull_request.labels.*.name, 'cuda') }}
         with:
-          context: ${{ matrix.context }}
-          file: .github/docker.df
-          push: true
-          tags: |
-            ghcr.io/${{ github.repository_owner }}/${{ matrix.context }}_docker:latest
-            quay.io/${{ vars.QUAYIO_USERNAME }}/${{ matrix.context }}_docker:latest
-            docker.io/${{ vars.DOCKERIO_USERNAME }}/${{ matrix.context }}_docker:latest
-
-      - name: Build and push docker containers with CUDA
-        uses: docker/build-push-action@v4
-        if: contains(github.event.pull_request.labels.*.name, 'cuda')
-        with:
-          build-args: CUDA_VERSION=11.2
+          build-contexts:
+            - github=${{ github.workspace }}/.github
           context: ${{ matrix.context }}
           file: .github/docker.df
           push: true
@@ -130,18 +120,9 @@ jobs:
 
       - name: Build apptainer containers
         shell: micromamba-shell {0}
-        if: ${{ !contains(github.event.pull_request.labels.*.name, 'cuda') }}
         run: |
           pushd ${{ matrix.context}}; \
             apptainer build /tmp/${{ matrix.context }}_apptainer.sif ${{ github.workspace }}/.github/apptainer.def; \
-          popd
-
-      - name: Build apptainer containers with CUDA
-        shell: micromamba-shell {0}
-        if: contains(github.event.pull_request.labels.*.name, 'cuda')
-        run: |
-          pushd ${{ matrix.context}}; \
-            apptainer build /tmp/${{ matrix.context }}_apptainer.sif ${{ github.workspace }}/.github/apptainer_cuda.def; \
           popd
 
       - name: Log in to ghcr.io with apptainer

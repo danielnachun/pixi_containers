@@ -3,7 +3,9 @@ name: Build containers from conda environments
 on:
   pull_request:
     paths:
-      - '*/*.yml'
+      - '*/global_packages'
+      - '*/r_libs.yml'
+      - '*/python_libs.yml'
 
 jobs:
   setup:
@@ -38,7 +40,10 @@ jobs:
           dir_names: true
           dir_names_exclude_current_dir: true
           json: true
-          files: "*/*.yml"
+          files: 
+            - "*/global_packages"
+            - '*/r_libs.yml'
+            - '*/python_libs.yml'
 
       - name: Export changed directories
         if: steps.changed-directories.outputs.all_changed_files_count > 0
@@ -76,18 +81,9 @@ jobs:
 
       - name: Build docker containers
         uses: docker/build-push-action@v4
-        if: ${{ !contains(github.event.pull_request.labels.*.name, 'cuda') }}
         with:
-          context: ${{ matrix.context }}
-          file: .github/docker.df
-          tags: ${{ matrix.context }}_docker:latest
-          outputs: type=docker,dest=/tmp/${{ matrix.context }}_docker.tar
-
-      - name: Build docker containers with CUDA
-        uses: docker/build-push-action@v4
-        if: contains(github.event.pull_request.labels.*.name, 'cuda')
-        with:
-          build-args: CUDA_VERSION=11.2
+          build-contexts:
+            - github=${{ github.workspace }}/.github
           context: ${{ matrix.context }}
           file: .github/docker.df
           tags: ${{ matrix.context }}_docker:latest
@@ -118,17 +114,8 @@ jobs:
           generate-run-shell: true
 
       - name: Build apptainer containers
-        if: ${{ !contains(github.event.pull_request.labels.*.name, 'cuda') }}
         shell: micromamba-shell {0}
         run: |
           pushd ${{ matrix.context}}; \
             apptainer build /tmp/${{ matrix.context }}_apptainer.sif ${{ github.workspace }}/.github/apptainer.def; \
-          popd
-
-      - name: Build apptainer containers with CUDA
-        if: contains(github.event.pull_request.labels.*.name, 'cuda')
-        shell: micromamba-shell {0}
-        run: |
-          pushd ${{ matrix.context}}; \
-            apptainer build /tmp/${{ matrix.context }}_apptainer.sif ${{ github.workspace }}/.github/apptainer_cuda.def; \
           popd

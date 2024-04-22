@@ -1,9 +1,0 @@
-name: base
-channels:
-  - dnachun
-  - conda-forge
-  - bioconda
-  - nodefaults
-dependencies:
-  - chrombpnet
-  - nvidia::cuda-nvcc

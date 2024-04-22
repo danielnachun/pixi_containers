@@ -1,20 +1,52 @@
-FROM mambaorg/micromamba
+FROM ghcr.io/prefix-dev/pixi:latest
 USER root
-COPY *.yml /environments/
-ARG CUDA_VERSION
-RUN for yml in $(ls /environments/*.yml); do \
-    env_name=$(grep "name: " < ${yml} | cut -d ' ' --fields 2); \
-        if [ $env_name = "base" ]; then \
-            CONDA_OVERRIDE_CUDA=${CUDA_VERSION} micromamba install --quiet --yes --name base --file ${yml}; \
-        else \
-            CONDA_OVERRIDE_CUDA=${CUDA_VERSION} micromamba env create --quiet --yes --file ${yml}; \
-        fi; \
-    done
+# For security reasons, SSL certificates and timezone database must be installed by host package manager
+RUN apt-get update && apt-get -y install ca-certificates tzdata libgl1 libgomp1
+# Use bash as default shell instead of dash
+RUN ln -sf /bin/bash /bin/sh  
+
+RUN useradd --no-log-init --create-home --shell /bin/bash --uid 1000 --no-user-group jovyan
+USER jovyan
+
+# Copy over configs and environments
+COPY r_libs.yml /tmp
+COPY python_libs.yml /tmp
+COPY global_packages /tmp
+
+RUN mkdir -p ${HOME}/.config/pixi
+COPY --from=github config.toml /home/jovyan/.config/pixi
+
+RUN mkdir -p /home/jovyan/.jupyter
+COPY --from=github jupyter_lab_config.py /home/jovyan/.jupyter
+COPY --from=github jupyter_server_config.py /home/jovyan/.jupyter
+
+ENV PIXI_HOME="/home/jovyan/.pixi"
+ENV PATH="${PIXI_HOME}/bin:${PATH}"
+ENV RATTLER_CACHE_DIR="/home/jovyan/.cache/rattler"
+ENV JUPYTER_CONFIG_PATH="/home/jovyan/.jupyter"
+ENV MAMBA_ROOT_PREFIX="/home/jovyan/micromamba"
+ENV MAMBA_EXE="${PIXI_HOME}/envs/micromamba/bin/micromamba"
+
+RUN mkdir -p ${PIXI_HOME} && \
+    mkdir -p ${RATTLER_CACHE_DIR} && \
+    mkdir -p ${JUPYTER_CONFIG_PATH} && \
+    mkdir -p ${MAMBA_ROOT_PREFIX}
+
+# Install global packages with pixi
+RUN pixi global install $(tr '\n' ' ' < /tmp/global_packages)
+
+# Install R and Python libraries with micromamba (will replace with pixi in future)
+RUN micromamba env create --yes --quiet --file /tmp/r_libs.yml;
+RUN micromamba env create --yes --quiet --file /tmp/python_libs.yml;
 RUN micromamba clean --all --yes
-RUN echo '#!/bin/bash' > /bin/sh
-RUN echo '[ -z "${CONDA_SHLVL+x}" ] && source /usr/local/bin/_activate_current_env.sh' >> /bin/sh
-RUN echo '/bin/bash "$@"' >> /bin/sh
-RUN chmod +x /bin/sh
-ENV MAMBA_ACTIVATE_DOCKERFILE=1
-ENV CUDA_DIR=/opt/conda
-ENV XLA_FLAGS=--xla_gpu_cuda_data_dir=/opt/conda
+RUN micromamba shell init --shell=bash ${HOME}/micromamba
+
+RUN find ${MAMBA_ROOT_PREFIX}/envs/python_libs/share/jupyter/kernels/ -maxdepth 1 -mindepth 1 -type d | \
+    xargs -I % jupyter-kernelspec install --user %
+RUN find ${MAMBA_ROOT_PREFIX}/envs/r_libs/share/jupyter/kernels/ -maxdepth 1 -mindepth 1 -type d | \
+    xargs -I % jupyter-kernelspec install --user %
+
+# Set path for R and Python libraries
+COPY --from=github setup.sh /tmp
+RUN bash /tmp/setup.sh # Run custom fixes
+CMD ["jupyter-lab"]
