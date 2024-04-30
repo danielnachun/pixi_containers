@@ -52,6 +52,7 @@ Stage: build
         xargs -I % jupyter-kernelspec install %
 
     bash setup.sh
+    chmod -R +x /opt
 
 %runscript
     cd ${HOME}
