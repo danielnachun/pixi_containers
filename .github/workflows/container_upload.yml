@@ -90,7 +90,7 @@ jobs:
             ghcr.io/${{ github.repository_owner }}/${{ matrix.context }}_docker:latest
             quay.io/${{ vars.QUAYIO_USERNAME }}/${{ matrix.context }}_docker:latest
             docker.io/${{ vars.DOCKERIO_USERNAME }}/${{ matrix.context }}_docker:latest
-          outputs: type=image,compression=uncompressed,push=true
+          outputs: type=image,compression=zstd,push=true
 
   push_apptainer_containers:
     needs: setup
