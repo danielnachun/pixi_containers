@@ -87,7 +87,7 @@ jobs:
           context: ${{ matrix.context }}
           file: .github/docker.df
           tags: ${{ matrix.context }}_docker:latest
-          outputs: type=docker,dest=/tmp/${{ matrix.context }}_docker.tar
+          outputs: type=docker,compression=uncompressed,dest=/tmp/${{ matrix.context }}_docker.tar
 
   apptainer_container:
     needs: setup
