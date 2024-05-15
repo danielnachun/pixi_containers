@@ -61,7 +61,7 @@ jobs:
             ghcr.io/${{ github.repository_owner }}/${{ github.event.inputs.container_name }}_docker:latest
             quay.io/${{ vars.QUAYIO_USERNAME }}/${{ github.event.inputs.container_name }}_docker:latest
             docker.io/${{ vars.DOCKERIO_USERNAME }}/${{ github.event.inputs.container_name }}_docker:latest
-          outputs: type=image,compression=zstd,push=true
+          outputs: type=image,compression=uncompressed,push=true
 
   push_apptainer_containers:
     runs-on: ubuntu-latest
