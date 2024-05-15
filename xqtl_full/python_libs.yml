@@ -33,7 +33,7 @@ dependencies:
   - jupyterlab-sos
   - markdown
   - markdown-kernel
-  - matplotlib
+  - matplotlib-base
   - multipy
   - nbdime
   - nbformat
@@ -52,7 +52,6 @@ dependencies:
   - python-lsp-server
   - qvalue
   - rpy2
-  - scikit-image
   - scikit-learn
   - scipy
   - seaborn
