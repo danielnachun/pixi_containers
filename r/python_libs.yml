@@ -1,0 +1,28 @@
+name: python_libs
+channels:
+  - dnachun
+  - conda-forge
+  - bioconda
+  - nodefaults
+dependencies:
+  - bash_kernel
+  - ipykernel
+  - ipympl
+  - ipywidgets
+  - jupyter_contrib_nbextensions
+  - jupyter-lsp
+  - jupyterhub
+  - jupyterlab-lsp
+  - jupyterlab-sos
+  - markdown
+  - markdown-kernel
+  - nbdime
+  - nbformat
+  - notebook
+  - sos-bash
+  - sos-notebook
+  - sos-pbs
+  - sos-python
+  - sos-r
+  - widgetsnbextension
+  - python=3.12

@@ -21,6 +21,7 @@ sys.path[0:0] = [
 EOF
 
 ln -f ${PIXI_HOME}/envs/python/lib/python3.12/site-packages/sitecustomize.py ${PIXI_HOME}/envs/jupyter_client/lib/python3.12/site-packages/
+ln -f ${PIXI_HOME}/envs/python/lib/python3.12/site-packages/sitecustomize.py ${PIXI_HOME}/envs/jupyter_console/lib/python3.12/site-packages/
 ln -f ${PIXI_HOME}/envs/python/lib/python3.12/site-packages/sitecustomize.py ${PIXI_HOME}/envs/jupyter_core/lib/python3.12/site-packages/
 ln -f ${PIXI_HOME}/envs/python/lib/python3.12/site-packages/sitecustomize.py ${PIXI_HOME}/envs/jupyter_server/lib/python3.12/site-packages/
 ln -f ${PIXI_HOME}/envs/python/lib/python3.12/site-packages/sitecustomize.py ${PIXI_HOME}/envs/jupyterlab/lib/python3.12/site-packages/
@@ -34,4 +35,6 @@ ln -sf ${PIXI_HOME}/bin/r ${PIXI_HOME}/bin/R
 ln -sf ${PIXI_HOME}/bin/rscript ${PIXI_HOME}/bin/Rscript
 
 # pixi global mistakenly points the samtools wrapper to samtools.pl, so we need to revert this change
-sed -i "s/samtools.pl/samtools/" ${PIXI_HOME}/bin/samtools
+if [ -f ${PIXI_HOME}/bin/samtools ]; then
+    sed -i "s/samtools.pl/samtools/" ${PIXI_HOME}/bin/samtools
+fi
