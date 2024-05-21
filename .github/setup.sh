@@ -34,4 +34,6 @@ ln -sf ${PIXI_HOME}/bin/r ${PIXI_HOME}/bin/R
 ln -sf ${PIXI_HOME}/bin/rscript ${PIXI_HOME}/bin/Rscript
 
 # pixi global mistakenly points the samtools wrapper to samtools.pl, so we need to revert this change
-sed -i "s/samtools.pl/samtools/" ${PIXI_HOME}/bin/samtools
+if [ -f ${PIXI_HOME}/bin/samtools ]; then
+    sed -i "s/samtools.pl/samtools/" ${PIXI_HOME}/bin/samtools
+fi
