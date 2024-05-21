@@ -1,0 +1,14 @@
+awscli
+git
+jedi-language-server
+jupyterlab
+jupyter_client
+jupyter_console
+jupyter_core
+jupyter_server
+micromamba
+nbconvert-core
+notebook
+ptpython
+python=3.12
+r-base=4.3
