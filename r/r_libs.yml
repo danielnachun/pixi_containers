@@ -8,6 +8,8 @@ dependencies:
   - bioconductor-biovizbase
   - bioconductor-dropletutils
   - bioconductor-edger
+  - bioconductor-ensdb.hsapiens.v75
+  - bioconductor-ensdb.hsapiens.v86
   - bioconductor-genomeinfodb
   - bioconductor-illuminahumanmethylation450kmanifest
   - bioconductor-illuminahumanmethylationepicmanifest
@@ -54,5 +56,6 @@ dependencies:
   - r-rmtstat
   - r-seurat
   - r-seuratdisk
+  - r-signac
   - r-tidyverse
   - r-watershedr
