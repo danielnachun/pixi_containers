@@ -3,3 +3,5 @@ crossmap
 watershed-sv
 ensembl-vep
 micromamba
+r-base=4.3
+python=3.12
