@@ -1,0 +1,8 @@
+name: r_libs
+channels:
+  - dnachun
+  - conda-forge
+  - bioconda
+  - nodefaults
+dependencies:
+  - r-base=4.3
