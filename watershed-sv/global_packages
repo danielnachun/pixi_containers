@@ -1,0 +1,13 @@
+annotsv
+crossmap
+ensembl-vep
+jupyter_client
+jupyter_console
+jupyter_core
+jupyter_server
+jupyterlab
+micromamba
+r-base=4.3
+sos
+python=3.12
+watershed-sv

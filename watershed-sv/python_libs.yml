@@ -1,0 +1,8 @@
+name: python_libs
+channels:
+  - dnachun
+  - conda-forge
+  - bioconda
+  - nodefaults
+dependencies:
+  - python=3.12
