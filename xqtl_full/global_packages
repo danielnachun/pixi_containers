@@ -21,6 +21,7 @@ htslib
 jedi-language-server
 jupyterlab
 jupyter_client
+jupyter_console
 jupyter_core
 jupyter_server
 kallisto
