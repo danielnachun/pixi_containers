@@ -9,44 +9,48 @@ RUN useradd --no-log-init --create-home --shell /bin/bash --uid 1000 --no-user-g
 USER jovyan
 
 # Copy over configs and environments
-COPY r_libs.yml /tmp
-COPY python_libs.yml /tmp
-COPY global_packages /tmp
+COPY r_libs.txt /tmp
+COPY python_libs.txt /tmp
+COPY global_packages.txt /tmp
 
 RUN mkdir -p ${HOME}/.config/pixi
-COPY --from=github config.toml /home/jovyan/.config/pixi
 
-RUN mkdir -p /home/jovyan/.jupyter
-COPY --from=github jupyter_lab_config.py /home/jovyan/.jupyter
-COPY --from=github jupyter_server_config.py /home/jovyan/.jupyter
+# RUN mkdir -p /home/jovyan/.jupyter
+# COPY --from=github jupyter_lab_config.py /home/jovyan/.jupyter
+# COPY --from=github jupyter_server_config.py /home/jovyan/.jupyter
 
 ENV PIXI_HOME="/home/jovyan/.pixi"
 ENV PATH="${PIXI_HOME}/bin:${PATH}"
 ENV RATTLER_CACHE_DIR="/home/jovyan/.cache/rattler"
-ENV JUPYTER_CONFIG_PATH="/home/jovyan/.jupyter"
-ENV MAMBA_ROOT_PREFIX="/home/jovyan/micromamba"
-ENV MAMBA_EXE="${PIXI_HOME}/envs/micromamba/bin/micromamba"
+# ENV JUPYTER_CONFIG_PATH="/home/jovyan/.jupyter"
+# ENV MAMBA_ROOT_PREFIX="/home/jovyan/micromamba"
+# ENV MAMBA_EXE="${PIXI_HOME}/envs/micromamba/bin/micromamba"
 
 RUN mkdir -p ${PIXI_HOME} && \
-    mkdir -p ${RATTLER_CACHE_DIR} && \
-    mkdir -p ${JUPYTER_CONFIG_PATH} && \
-    mkdir -p ${MAMBA_ROOT_PREFIX}
+    mkdir -p ${RATTLER_CACHE_DIR}
+
+COPY --from=github config.toml ${PIXI_HOME}
+    # mkdir -p ${JUPYTER_CONFIG_PATH} && \
+    # mkdir -p ${MAMBA_ROOT_PREFIX}
 
 # Install global packages with pixi
 RUN pixi global install $(tr '\n' ' ' < /tmp/global_packages)
 
 # Install R and Python libraries with micromamba (will replace with pixi in future)
-RUN micromamba env create --yes --quiet --file /tmp/r_libs.yml;
-RUN micromamba env create --yes --quiet --file /tmp/python_libs.yml;
-RUN micromamba clean --all --yes
-RUN micromamba shell init --shell=bash ${HOME}/micromamba
+RUN pixi global install --environment r-base $(tr '\n' ' ' < /tmp/r_libs.txt)
+RUN pixi global install --environment python $(tr '\n' ' ' < /tmp/python_libs.txt)
 
-RUN find ${MAMBA_ROOT_PREFIX}/envs/python_libs/share/jupyter/kernels/ -maxdepth 1 -mindepth 1 -type d | \
-    xargs -I % jupyter-kernelspec install --user %
-RUN find ${MAMBA_ROOT_PREFIX}/envs/r_libs/share/jupyter/kernels/ -maxdepth 1 -mindepth 1 -type d | \
-    xargs -I % jupyter-kernelspec install --user %
+RUN find ${PIXI_HOME}/envs/r-base/bin -name '*bioconductor-*-post-link.sh' | \
+   xargs -I % bash -c "PREFIX=${PIXI_HOME}/envs/r-base PATH=${PIXI_HOME}/envs/r-base/bin:${PATH} %"
+
+# RUN micromamba shell init --shell=bash ${HOME}/micromamba
+
+# RUN find ${MAMBA_ROOT_PREFIX}/envs/python_libs/share/jupyter/kernels/ -maxdepth 1 -mindepth 1 -type d | \
+#     xargs -I % jupyter-kernelspec install --user %
+# RUN find ${MAMBA_ROOT_PREFIX}/envs/r_libs/share/jupyter/kernels/ -maxdepth 1 -mindepth 1 -type d | \
+#     xargs -I % jupyter-kernelspec install --user %
 
 # Set path for R and Python libraries
-COPY --from=github setup.sh /tmp
-RUN bash /tmp/setup.sh # Run custom fixes
-CMD ["jupyter-lab"]
+# COPY --from=github setup.sh /tmp
+# RUN bash /tmp/setup.sh # Run custom fixes
+# CMD ["jupyter-lab"]
