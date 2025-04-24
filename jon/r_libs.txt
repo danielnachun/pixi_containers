@@ -1,0 +1,4 @@
+r-tidyverse
+r-data.table
+r-optparse
+bioconductor-snprelate
