@@ -3,9 +3,9 @@ name: Build containers from conda environments
 on:
   pull_request:
     paths:
-      - '*/global_packages'
-      - '*/r_libs.yml'
-      - '*/python_libs.yml'
+      - '*/global_packages.txt'
+      - '*/r_libs.txt'
+      - '*/python_libs.txt'
 
 jobs:
   setup:
@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
     outputs:
-      matrix: ${{ steps.export-directories.outputs.matrix }} 
+      matrix: ${{ steps.export-directories.outputs.matrix }}
       all_changed_files_count: ${{ steps.changed-directories.outputs.all_changed_files_count }}
 
     steps:
@@ -30,7 +30,7 @@ jobs:
         uses: nrwl/nx-set-shas@v3
         id: last_successful_commit_pull_request
         with:
-          main-branch-name: ${{ steps.branch-name.outputs.base_ref_branch }} 
+          main-branch-name: ${{ steps.branch-name.outputs.base_ref_branch }}
 
       - name: Get changed directories
         id: changed-directories
@@ -41,9 +41,9 @@ jobs:
           dir_names_exclude_current_dir: true
           json: true
           files: |
-            */global_packages
-            */r_libs.yml
-            */python_libs.yml
+            */global_packages.txt
+            */r_libs.txt
+            */python_libs.txt
 
       - name: Export changed directories
         if: steps.changed-directories.outputs.all_changed_files_count > 0
@@ -89,33 +89,33 @@ jobs:
           tags: ${{ matrix.context }}_docker:latest
           outputs: type=image,compression=zstd
 
-  apptainer_container:
-    needs: setup
-    if: needs.setup.outputs.all_changed_files_count > 0
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJSON(needs.setup.outputs.matrix) }}
-
-    steps:
-      - name: Checkout pull request branch
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-
-      - name: Free Disk Space (Ubuntu)
-        uses: jlumbroso/free-disk-space@main
-
-      - name: Setup micromamba
-        uses: mamba-org/setup-micromamba@v1
-        with:
-          environment-name: containers
-          create-args: apptainer=1.2
-          generate-run-shell: true
-
-      - name: Build apptainer containers
-        shell: micromamba-shell {0}
-        run: |
-          pushd ${{ matrix.context}}; \
-            apptainer build /tmp/${{ matrix.context }}_apptainer.sif ${{ github.workspace }}/.github/apptainer.def; \
-          popd
+  # apptainer_container:
+  #   needs: setup
+  #   if: needs.setup.outputs.all_changed_files_count > 0
+  #   runs-on: ubuntu-latest
+  #   strategy:
+  #     fail-fast: false
+  #     matrix: ${{ fromJSON(needs.setup.outputs.matrix) }}
+  #
+  #   steps:
+  #     - name: Checkout pull request branch
+  #       uses: actions/checkout@v3
+  #       with:
+  #         fetch-depth: 0
+  #
+  #     - name: Free Disk Space (Ubuntu)
+  #       uses: jlumbroso/free-disk-space@main
+  #
+  #     - name: Setup micromamba
+  #       uses: mamba-org/setup-micromamba@v1
+  #       with:
+  #         environment-name: containers
+  #         create-args: apptainer=1.2
+  #         generate-run-shell: true
+  #
+  #     - name: Build apptainer containers
+  #       shell: micromamba-shell {0}
+  #       run: |
+  #         pushd ${{ matrix.context}}; \
+  #           apptainer build /tmp/${{ matrix.context }}_apptainer.sif ${{ github.workspace }}/.github/apptainer.def; \
+  #         popd
