@@ -34,7 +34,7 @@ COPY --from=github config.toml ${PIXI_HOME}
     # mkdir -p ${MAMBA_ROOT_PREFIX}
 
 # Install global packages with pixi
-RUN pixi global install $(tr '\n' ' ' < /tmp/global_packages)
+RUN pixi global install $(tr '\n' ' ' < /tmp/global_packages.txt)
 
 # Install R and Python libraries with micromamba (will replace with pixi in future)
 RUN pixi global install --environment r-base $(tr '\n' ' ' < /tmp/r_libs.txt)
